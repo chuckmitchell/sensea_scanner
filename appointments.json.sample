@@ -1,0 +1,49 @@
+{
+  "Kaegan M (Swedish)": {
+    "image_url": "https://cdn-s.acuityscheduling.com/calendar-12171251.jpg?1748047376",
+    "description": "Kaegan is a Registered Massage Therapist...",
+    "booking_url": "https://sensea.as.me/?appointmentType=12789431&calendarID=12171251",
+    "slots": [
+      ["December 04, 2025", "10:30 AM"],
+      ["December 04, 2025", "01:15 PM"],
+      ["December 05, 2025", "09:00 AM"]
+    ]
+  },
+  "Racquel M (Deep Tissue)": {
+    "image_url": "https://cdn-s.acuityscheduling.com/calendar-11967663.jpg?1745448659",
+    "description": "Racquel specializes in deep tissue treatments...",
+    "booking_url": "https://sensea.as.me/?appointmentType=12789613&calendarID=11967663",
+    "slots": [
+      ["December 04, 2025", "11:45 AM"],
+      ["December 06, 2025", "02:30 PM"]
+    ]
+  },
+  "Amanda B (Swedish)": {
+    "image_url": "https://cdn-s.acuityscheduling.com/calendar-12653062.jpg?1756232896",
+    "description": "Amanda provides a relaxing Swedish massage experience.",
+    "booking_url": "https://sensea.as.me/?appointmentType=12789431&calendarID=12653062",
+    "slots": [
+      ["December 05, 2025", "10:00 AM"],
+      ["December 05, 2025", "11:15 AM"]
+    ]
+  },
+  "Amanda & Racquel (Couples)": {
+    "image_url": "couples_massage.png",
+    "description": "Relax together with a side-by-side massage.",
+    "booking_url": "https://sensea.as.me/?appointmentType=13182311",
+    "slots": [
+      ["December 06, 2025", "04:00 PM"],
+      ["December 07, 2025", "11:00 AM"]
+    ]
+  },
+  "Spa Pass": {
+    "image_url": "spa_pass.png",
+    "description": "Access to the Nordic Spa facilities.",
+    "booking_url": "https://sensea.as.me/?appointmentType=15360506",
+    "slots": [
+      ["December 04, 2025", "09:00 AM"],
+      ["December 04, 2025", "12:00 PM"],
+      ["December 07, 2025", "03:00 PM"]
+    ]
+  }
+}

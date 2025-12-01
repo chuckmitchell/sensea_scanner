@@ -1,0 +1,30 @@
+# OS generated files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Ruby
+.ruby-lsp/
+.ruby-version
+.bundle/
+vendor/bundle/
+
+# Logs
+*.log
+cron.log
+
+# Generated Data
+www/appointments.json
+appointments.json
+
+# Debugging artifacts
+debug_*
+*.html
+*.png
+!www/assets/img/*.png
+!spa_pass.png
+!couples_massage.png
+
+# Docker
+.docker/
