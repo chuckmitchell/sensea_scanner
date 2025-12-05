@@ -1,13 +1,18 @@
-version: '3.8'
+version: '3'
 
 services:
-  app:
+  sensea:
     build: .
-    ports:
-      - "8080:8080"
-
+    container_name: sensea_scanner
+    restart: always
     environment:
       - HEADLESS=true
       - SCAN_TYPE=both
+      # - TARGET_STAFF=Name1,Name2 # Optional: Filter by staff name
+    networks:
+      - dinghy_net
 
-    restart: unless-stopped
+# The network must exist in the stack or be defined at the bottom
+networks:
+  dinghy_net:
+    external: true # Assuming it's shared, or remove 'external: true' if defined in this stack
