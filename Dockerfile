@@ -38,6 +38,6 @@ ENV HEADLESS=true
 ENV FERRUM_BROWSER_PATH=/usr/bin/google-chrome
 
 # Expose web server port
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["./start.sh"]
