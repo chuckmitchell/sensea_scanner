@@ -25,6 +25,7 @@ debug_*
 !www/assets/img/*.png
 !spa_pass.png
 !couples_massage.png
+!www/index.html
 
 # Docker
 .docker/
