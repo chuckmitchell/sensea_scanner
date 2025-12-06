@@ -140,10 +140,10 @@ class SenseaScanner
     begin
       # Removed wait_for_idle as it causes unnecessary delays
       # @browser.network.wait_for_idle
-      # Wait up to 5 seconds for calendar, check every 0.1s
+      # Wait up to 5 seconds for calendar header, check every 0.1s
       found = false
       50.times do
-        if @browser.at_xpath("//div[contains(@class, 'react-calendar')]") || @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+        if @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
           found = true
           break
         end
@@ -330,10 +330,10 @@ class SenseaScanner
       # Removed wait_for_idle as it causes unnecessary delays on pages with background polling
       # @browser.network.wait_for_idle 
       
-      # Wait up to 5 seconds for calendar, check every 0.1s
+      # Wait up to 5 seconds for calendar header, check every 0.1s
       found = false
       50.times do
-        if @browser.at_xpath("//div[contains(@class, 'react-calendar')]") || @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+        if @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
           found = true
           break
         end
