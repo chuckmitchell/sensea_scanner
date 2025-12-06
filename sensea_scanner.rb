@@ -173,8 +173,9 @@ class SenseaScanner
       @logger.info "No 'Next Month' button found."
     end
     
-    # Filter for next 2 weeks only
-    cutoff = Date.today + 14
+    # Filter for next N days (default 14)
+    days_to_scan = (ENV['DAYS_TO_SCAN'] || 14).to_i
+    cutoff = Date.today + days_to_scan
     filtered_slots = available_slots.select do |slot|
       begin
         Date.parse(slot[:date]) <= cutoff 

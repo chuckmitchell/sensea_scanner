@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (appointments.length === 0) {
-            staffGrid.innerHTML = '<div class="loading-state"><p>No available slots found in the next 2 weeks.</p></div>';
+            staffGrid.innerHTML = '<div class="loading-state"><p>No available slots found.</p></div>';
             return;
         }
 
