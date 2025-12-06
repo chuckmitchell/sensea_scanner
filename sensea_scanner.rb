@@ -87,8 +87,8 @@ class SenseaScanner
     @logger.info "Navigating to Spa Pass category page: #{url}"
     @browser.go_to(url)
     
-    # Wait for page to load
-    sleep 2
+    # Wait for page to load - Optimized
+    # Instead of sleep 2, wait for the button we need
     
     # Find and click the "Select" button specifically for Spa Pass
     # The structure is usually a container with the name and the button
@@ -96,7 +96,15 @@ class SenseaScanner
       # XPath to find the button relative to the "Spa pass" text
       # We look for a container (li) that has a div with exact text "Spa Pass" and a "Select" button
       # Using normalize-space to handle potential whitespace
-      btn = @browser.at_xpath("//li[contains(@class, 'select-item') and .//div[contains(@class, 'appointment-type-name') and normalize-space(text())='Spa Pass']]//button[contains(., 'Select')]")
+      xpath = "//li[contains(@class, 'select-item') and .//div[contains(@class, 'appointment-type-name') and normalize-space(text())='Spa Pass']]//button[contains(., 'Select')]"
+      
+      # Wait for the button to appear (manual polling since at_xpath doesn't support timeout)
+      btn = nil
+      50.times do
+        btn = @browser.at_xpath(xpath)
+        break if btn
+        sleep 0.1
+      end
 
       
       if btn
@@ -115,7 +123,8 @@ class SenseaScanner
     
     # Wait for calendar to appear
     begin
-      @browser.network.wait_for_idle
+      # Removed wait_for_idle as it causes unnecessary delays
+      # @browser.network.wait_for_idle
       # Wait up to 5 seconds for calendar, check every 0.1s
       found = false
       50.times do
