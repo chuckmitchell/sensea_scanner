@@ -13,11 +13,15 @@ class SenseaScanner
     @logger = Logger.new(STDERR)
     @browser = Ferrum::Browser.new(
       headless: ENV['HEADLESS'] != 'false',
-      timeout: 60,
+      timeout: 120,          # General timeout
+      process_timeout: 120,  # Startup timeout (increased for Docker)
       window_size: [1280, 1024],
       js_errors: false,
       browser_options: {
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'no-sandbox': nil,
+        'disable-dev-shm-usage': nil,
+        'disable-gpu': nil
       }
     )
     @results = {}
