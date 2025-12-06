@@ -280,23 +280,15 @@ class SenseaScanner
   def scan_staff(staff, url)
     @logger.info "--- Scanning #{staff[:name]} ---"
     
-    # Reset to main page
-    @logger.info "Navigating back to main page..."
-    @browser.go_to(url)
-    # Optimized wait: wait for the specific element we need instead of generic sleep
-    begin
-      @browser.at_xpath("//button[contains(., 'Select')]", timeout: 5)
-    rescue
-      sleep 2 # Fallback
-    end
-    
-    # Click the specific button for this staff member
     # Navigate directly to the staff's booking URL
     if staff[:booking_url]
       @logger.info "Navigating directly to booking URL for #{staff[:name]}..."
       @browser.go_to(staff[:booking_url])
     else
-      # Fallback to clicking button (should not happen with new logic)
+      # Fallback to clicking button (legacy path)
+      @logger.info "Navigating back to main page..."
+      @browser.go_to(url)
+      
       @logger.warn "No booking URL for #{staff[:name]}. Trying button click..."
       buttons = @browser.xpath("//button[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'select')] | //label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'select')] | //div[contains(@class, 'btn') and contains(., 'Select')]")
       btn = buttons[staff[:index]]
@@ -311,7 +303,9 @@ class SenseaScanner
     # Wait for calendar to appear - Optimized
     # Look for the month label or navigation
     begin
-      @browser.network.wait_for_idle
+      # Removed wait_for_idle as it causes unnecessary delays on pages with background polling
+      # @browser.network.wait_for_idle 
+      
       # Wait up to 5 seconds for calendar, check every 0.1s
       found = false
       50.times do
@@ -344,9 +338,12 @@ class SenseaScanner
     if next_btn
       @logger.info "Clicking 'Next Month'..."
       next_btn.click
-      # Optimized wait for next month - Increased to 2s to be safe
-      sleep 2
-      @browser.network.wait_for_idle
+      # Optimized wait for next month
+      begin
+        @browser.network.wait_for_idle(timeout: 2)
+      rescue
+        sleep 1
+      end
       @logger.info "Scanning next month view..."
       available_slots.concat(scrape_month)
     else
@@ -431,8 +428,12 @@ class SenseaScanner
       # Click to reveal times
       day_btn.click
       
-      # Optimized wait: Wait for times to appear or change
-      sleep 0.5 
+      # Optimized wait: Wait for network idle instead of hard sleep
+      begin
+        @browser.network.wait_for_idle(timeout: 1)
+      rescue
+        sleep 0.1 # Fallback if idle wait times out or fails
+      end 
       
       # Scrape times
       # Look for inputs with name='time' or labels, OR p tags with AM/PM (dynamic classes)
