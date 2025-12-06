@@ -8,13 +8,14 @@ class SenseaScanner
   SWEDISH_URL = "https://sensea.as.me/?appointmentType=12789431"
   DEEP_TISSUE_URL = "https://sensea.as.me/?appointmentType=12789613"
   COUPLES_URL = "https://sensea.as.me/?appointmentType=13182311"
+  TIMEOUT = 120
   
   def initialize
     @logger = Logger.new(STDERR)
     @browser = Ferrum::Browser.new(
       headless: ENV['HEADLESS'] != 'false',
-      timeout: 120,          # General timeout
-      process_timeout: 120,  # Startup timeout (increased for Docker)
+      timeout: TIMEOUT,
+      process_timeout: TIMEOUT,
       window_size: [1280, 1024],
       js_errors: false,
       browser_options: {
@@ -25,7 +26,7 @@ class SenseaScanner
       }
     )
     @results = {}
-    @logger.info "SenseaScanner initialized. Browser launching..."
+    @logger.info "SenseaScanner initialized. Timeout: #{TIMEOUT}s. Browser launching..."
   end
 
   def scan
