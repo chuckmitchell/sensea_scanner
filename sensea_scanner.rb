@@ -409,7 +409,14 @@ class SenseaScanner
     slots = []
     
     # Determine current view month/year from header
-    header = @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+    # Retry a few times as it might be transitioning
+    header = nil
+    10.times do
+      header = @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+      break if header
+      sleep 0.2
+    end
+    
     if header
       header_text = header.text.strip # e.g., "November 2025"
       begin
