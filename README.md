@@ -63,3 +63,21 @@ docker logs sensea_scanner
 *   `crontab`: Schedule definition (runs every 15 mins).
 *   `start.sh`: Entrypoint script (starts cron and web server).
 *   `www/`: Web root containing `index.html` and generated `appointments.json`.
+
+## Caching & Performance
+
+### Build Caching
+The GitHub Actions workflow is configured to use **GitHub Actions Cache** for Docker layers. This significantly speeds up builds (from ~2m to ~30s) by reusing the heavy Chrome installation layer between runs.
+
+#### Clearing the Cache
+If you need to force a clean build (e.g., to update base dependencies):
+1.  Go to the **Actions** tab in your GitHub repository.
+2.  Click **Caches** in the left sidebar.
+3.  Click the trash icon next to the cache entries to delete them.
+4.  Trigger a new build.
+
+### Frontend Caching
+The frontend uses a "smart caching" strategy:
+1.  Fetches `appointments.md5` (with a timestamp to bypass cache) to get the latest data hash.
+2.  Uses that hash to fetch `appointments.json?v=HASH`.
+3.  This allows the browser to cache the large JSON file indefinitely until the content actually changes.
