@@ -8,8 +8,8 @@ chmod +x /app/env.sh
 service cron start
 
 # Run scanner immediately on startup so data is available
-echo "Running initial scan..."
-. /app/env.sh && ruby sensea_scanner.rb
+echo "Running initial scan in background..."
+. /app/env.sh && ruby sensea_scanner.rb &
 
 # Start a simple Ruby web server in the foreground on port 8080
 echo "Starting web server on port 8081..."
