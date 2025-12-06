@@ -3,6 +3,7 @@ require 'ferrum'
 require 'logger'
 require 'json'
 require 'date'
+require 'time'
 require 'digest'
 
 class SenseaScanner
@@ -53,7 +54,7 @@ class SenseaScanner
       
       # Add metadata
       @results['_meta'] = {
-        generated_at: Time.now.to_s
+        generated_at: Time.now.iso8601
       }
       
       json_output = JSON.pretty_generate(@results)
