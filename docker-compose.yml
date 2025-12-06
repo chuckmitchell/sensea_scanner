@@ -6,6 +6,7 @@ services:
     container_name: sensea_scanner
     restart: always
     environment:
+      - TZ=America/Halifax # Or your specific timezone
       - HEADLESS=true
       - SCAN_TYPE=both
       # - TARGET_STAFF=Name1,Name2 # Optional: Filter by staff name
