@@ -384,9 +384,9 @@ class SenseaScanner
     }
     
     if filtered_slots.any?
-      @logger.info "SUCCESS: Found #{filtered_slots.count} slots for #{staff[:name]} in the next 2 weeks."
+      @logger.info "SUCCESS: Found #{filtered_slots.count} slots for #{staff[:name]} in the next #{days_to_scan} days."
     else
-      @logger.info "No availability found for #{staff[:name]} in the next 2 weeks."
+      @logger.info "No availability found for #{staff[:name]} in the next #{days_to_scan} days."
     end
   end
 
@@ -409,6 +409,8 @@ class SenseaScanner
       end
     else
       @logger.warn "Could not find calendar header. Assuming current month."
+      @browser.screenshot(path: "debug_missing_header.png")
+      File.write("debug_missing_header.html", @browser.body)
       year = Date.today.year
       month = Date.today.month
     end
