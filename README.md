@@ -17,7 +17,7 @@ A Ruby-based web scraper designed to monitor appointment availability for the Se
 | `SCAN_TYPE` | `both` | What to scan. Options: `massage`, `spapass`, `both`. |
 | `MASSAGE_TYPE` | `all` | Filter for massage scan. Options: `swedish`, `deep_tissue`, `couples`, `all`. |
 | `TARGET_STAFF` | *(Empty)* | Comma-separated list of staff names to filter by (e.g., `Name1,Name2`). |
-| `DAYS_TO_SCAN` | `14` | Number of days into the future to look for appointments. |
+| `DAYS_TO_SCAN` | `30` | Number of days into the future to look for appointments. |
 | `TZ` | `UTC` | Timezone for the container (affects cron schedule and logs). |
 
 ## Local Development

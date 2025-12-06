@@ -10,6 +10,7 @@ class SenseaScanner
   DEEP_TISSUE_URL = "https://sensea.as.me/?appointmentType=12789613"
   COUPLES_URL = "https://sensea.as.me/?appointmentType=13182311"
   TIMEOUT = 120
+  DAYS_TO_SCAN = (ENV['DAYS_TO_SCAN'] || 30).to_i
   
   def initialize
     @logger = Logger.new(STDERR)
@@ -33,6 +34,7 @@ class SenseaScanner
   def scan
     @logger.info "Starting scan process..."
     scan_type = ENV['SCAN_TYPE']
+    @logger.info "Days to scan: #{DAYS_TO_SCAN}"
     @logger.info "Scan Type: #{scan_type || 'ALL (Default)'}"
 
     begin
@@ -173,9 +175,8 @@ class SenseaScanner
       @logger.info "No 'Next Month' button found."
     end
     
-    # Filter for next N days (default 14)
-    days_to_scan = (ENV['DAYS_TO_SCAN'] || 14).to_i
-    cutoff = Date.today + days_to_scan
+    # Filter for next N days
+    cutoff = Date.today + DAYS_TO_SCAN
     filtered_slots = available_slots.select do |slot|
       begin
         Date.parse(slot[:date]) <= cutoff 
@@ -366,9 +367,8 @@ class SenseaScanner
       @logger.info "No 'Next Month' button found (possibly end of available schedule)."
     end
     
-    # Filter for next N days (default 14)
-    days_to_scan = (ENV['DAYS_TO_SCAN'] || 14).to_i
-    cutoff = Date.today + days_to_scan
+    # Filter for next N days
+    cutoff = Date.today + DAYS_TO_SCAN
     filtered_slots = available_slots.select do |slot|
       begin
         # Parse date carefully. Acuity aria-label is usually "Month Day, Year" e.g. "November 30, 2025"
@@ -392,9 +392,9 @@ class SenseaScanner
     }
     
     if filtered_slots.any?
-      @logger.info "SUCCESS: Found #{filtered_slots.count} slots for #{staff[:name]} in the next #{days_to_scan} days."
+      @logger.info "SUCCESS: Found #{filtered_slots.count} slots for #{staff[:name]} in the next #{DAYS_TO_SCAN} days."
     else
-      @logger.info "No availability found for #{staff[:name]} in the next #{days_to_scan} days."
+      @logger.info "No availability found for #{staff[:name]} in the next #{DAYS_TO_SCAN} days."
     end
   end
 
