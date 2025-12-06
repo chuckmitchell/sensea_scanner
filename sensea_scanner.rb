@@ -3,6 +3,7 @@ require 'ferrum'
 require 'logger'
 require 'json'
 require 'date'
+require 'digest'
 
 class SenseaScanner
   SWEDISH_URL = "https://sensea.as.me/?appointmentType=12789431"
@@ -52,7 +53,12 @@ class SenseaScanner
       
       # Save to file for frontend
     File.write('www/appointments.json', json_output)
-    @logger.info "JSON output saved to www/appointments.json"
+    
+    # Generate and save MD5 hash
+    md5 = Digest::MD5.hexdigest(json_output)
+    File.write('www/appointments.md5', md5)
+    
+    @logger.info "JSON output saved to www/appointments.json (MD5: #{md5})"
 
     rescue => e
       @logger.error "CRITICAL ERROR during scan: #{e.message}"
@@ -359,8 +365,9 @@ class SenseaScanner
       @logger.info "No 'Next Month' button found (possibly end of available schedule)."
     end
     
-    # Filter for next 2 weeks only
-    cutoff = Date.today + 14
+    # Filter for next N days (default 14)
+    days_to_scan = (ENV['DAYS_TO_SCAN'] || 14).to_i
+    cutoff = Date.today + days_to_scan
     filtered_slots = available_slots.select do |slot|
       begin
         # Parse date carefully. Acuity aria-label is usually "Month Day, Year" e.g. "November 30, 2025"

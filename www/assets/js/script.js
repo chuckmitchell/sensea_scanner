@@ -2,11 +2,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const staffGrid = document.getElementById('staff-grid');
     const lastUpdatedEl = document.getElementById('last-updated');
 
-    fetch('appointments.json')
+    // 1. Fetch the MD5 hash first (always fresh)
+    fetch(`appointments.md5?t=${new Date().getTime()}`)
         .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Could not load MD5 hash');
+            return response.text();
+        })
+        .then(hash => {
+            const cleanHash = hash.trim();
+            console.log(`Latest data hash: ${cleanHash}`);
+
+            // 2. Fetch the actual data using the hash as a cache buster
+            // This allows the browser to cache the large JSON file until the hash changes
+            return fetch(`appointments.json?v=${cleanHash}`);
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
             return response.json();
         })
         .then(data => {
