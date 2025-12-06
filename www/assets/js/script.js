@@ -18,11 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
-            return response.json();
+
+            // Get last modified date from headers
+            const lastModified = response.headers.get('Last-Modified');
+            return response.json().then(data => ({ data, lastModified }));
         })
-        .then(data => {
+        .then(({ data, lastModified }) => {
             renderStaff(data);
-            updateTimestamp();
+            updateTimestamp(lastModified);
         })
         .catch(error => {
             console.error('Error fetching data:', error);
@@ -169,8 +172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Date(2000, 0, 1, hours, minutes);
     }
 
-    function updateTimestamp() {
-        const now = new Date();
-        lastUpdatedEl.textContent = `Last updated: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}`;
+    function updateTimestamp(dateStr) {
+        const date = dateStr ? new Date(dateStr) : new Date();
+        lastUpdatedEl.textContent = `Last updated: ${date.toLocaleTimeString()} on ${date.toLocaleDateString()}`;
     }
 });
