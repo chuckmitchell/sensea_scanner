@@ -25,9 +25,7 @@ RUN bundle install
 # Copy application code
 COPY . .
 
-# Setup Cron
-COPY crontab /etc/cron.d/sensea-cron
-RUN chmod 0644 /etc/cron.d/sensea-cron && crontab /etc/cron.d/sensea-cron
+# Setup Cron (handled in start.sh)
 RUN touch /var/log/cron.log
 
 # Make scripts executable
