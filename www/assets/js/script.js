@@ -19,13 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(response => {
             if (!response.ok) throw new Error('Network response was not ok');
 
-            // Get last modified date from headers
-            const lastModified = response.headers.get('Last-Modified');
-            return response.json().then(data => ({ data, lastModified }));
+            // Get last modified date from headers (fallback)
+            const headerDate = response.headers.get('Last-Modified');
+            return response.json().then(data => ({ data, headerDate }));
         })
-        .then(({ data, lastModified }) => {
+        .then(({ data, headerDate }) => {
             renderStaff(data);
-            updateTimestamp(lastModified);
+
+            // Prefer metadata timestamp, fallback to header
+            const timestamp = (data._meta && data._meta.generated_at) ? data._meta.generated_at : headerDate;
+            updateTimestamp(timestamp);
         })
         .catch(error => {
             console.error('Error fetching data:', error);
@@ -44,6 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const appointments = [];
 
         Object.keys(data).forEach(staffName => {
+            if (staffName === '_meta') return;
+
             const staff = data[staffName];
             if (staff.slots && staff.slots.length > 0) {
                 staff.slots.forEach(slot => {

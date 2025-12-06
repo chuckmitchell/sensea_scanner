@@ -50,6 +50,12 @@ class SenseaScanner
 
       # 3. Output JSON
       @logger.info "Scan complete. Generating JSON output..."
+      
+      # Add metadata
+      @results['_meta'] = {
+        generated_at: Time.now.to_s
+      }
+      
       json_output = JSON.pretty_generate(@results)
       puts json_output
       
