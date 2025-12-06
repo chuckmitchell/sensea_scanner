@@ -1,2 +1,2 @@
 # Run scanner every 15 minutes
-*/15 * * * * root . /app/env.sh && cd /app && ruby sensea_scanner.rb >> /var/log/cron.log 2>&1
+*/15 * * * * . /app/env.sh && cd /app && ruby sensea_scanner.rb >> /var/log/cron.log 2>&1
