@@ -165,11 +165,13 @@ class SenseaScanner
       @browser.go_to(booking_url)
       
       # Spa Pass types use Acuity's "class" view (chronological list) instead of a calendar.
-      # Wait for the class listing to load by checking for date headers (H2 elements)
+      # Wait for BOTH a date header H2 (e.g. "Tuesday, April 7th") AND at least one H3 time
+      # slot (e.g. "10:20 AM") to appear. The date H2s render in one React cycle and the H3
+      # time slots render in a subsequent cycle, so checking only for H2s fires too early.
       begin
         found = false
         50.times do
-          has_listing = @browser.evaluate("document.querySelector('h2') !== null")
+          has_listing = @browser.evaluate("(function() { var h2s = document.querySelectorAll('h2'); var hasDateH2 = false; for (var i = 0; i < h2s.length; i++) { if (/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(h2s[i].innerText)) { hasDateH2 = true; break; } } if (!hasDateH2) return false; var h3s = document.querySelectorAll('h3'); for (var i = 0; i < h3s.length; i++) { if (/\\d+:\\d+\\s*[AP]M/i.test(h3s[i].innerText)) return true; } return false; })()")
           if has_listing
             found = true
             break
@@ -195,9 +197,13 @@ class SenseaScanner
       
       loop do
         pages_scraped += 1
-        
+
+        # Debug: log what the headless browser sees before extraction
+        debug_info = @browser.evaluate("(function() { var h2s = []; var h3s = []; document.querySelectorAll('h2').forEach(function(e) { h2s.push(e.innerText.trim().substring(0, 60)); }); document.querySelectorAll('h3').forEach(function(e) { h3s.push(e.innerText.trim().substring(0, 60)); }); var main = document.querySelector('main'); return { hasMain: !!main, h2Count: h2s.length, h3Count: h3s.length, h2s: h2s.slice(0, 5), h3s: h3s.slice(0, 5), url: window.location.href }; })()")
+        @logger.info "DEBUG page state: #{debug_info.inspect}"
+
         # Extract all visible slots using JavaScript
-        slot_data = @browser.evaluate(<<~JS)
+        slot_data = @browser.evaluate(<<~'JS')
           (function() {
             var results = [];
             var currentDate = '';
@@ -220,15 +226,18 @@ class SenseaScanner
               // H3 elements are time slots like "10:40 AM"
               else if (el.tagName === 'H3' && currentDate && /\d+:\d+\s*[AP]M/i.test(text)) {
                 var time = text.trim();
-                // Look for spots info - traverse up to the slot container and find spots text
-                var slotContainer = el.closest('[class*="css-"]') || el.parentElement;
+                // Look for spots info - walk up ancestors until we find one containing "spots left"
+                // (the spots count is in a sibling branch, not a direct ancestor of the H3)
                 var spotsText = '';
-                if (slotContainer) {
-                  var allText = slotContainer.innerText;
-                  var spotsMatch = allText.match(/(\d+)\s+spots?\s+left/i);
+                var ancestor = el.parentElement;
+                for (var j = 0; j < 10 && ancestor; j++) {
+                  var ancestorText = ancestor.innerText || '';
+                  var spotsMatch = ancestorText.match(/(\d+)\s+spots?\s+left/i);
                   if (spotsMatch) {
                     spotsText = spotsMatch[1];
+                    break;
                   }
+                  ancestor = ancestor.parentElement;
                 }
                 results.push({
                   date: currentDate,
