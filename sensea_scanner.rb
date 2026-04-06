@@ -164,11 +164,13 @@ class SenseaScanner
       @logger.info "Navigating to booking URL: #{booking_url}"
       @browser.go_to(booking_url)
       
-      # Wait for calendar to appear
+      # Spa Pass types use Acuity's "class" view (chronological list) instead of a calendar.
+      # Wait for the class listing to load by checking for date headers (H2 elements)
       begin
         found = false
         50.times do
-          if @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+          has_listing = @browser.evaluate("document.querySelector('h2') !== null")
+          if has_listing
             found = true
             break
           end
@@ -176,39 +178,116 @@ class SenseaScanner
         end
         
         if found
-          @logger.info "Calendar loaded successfully."
+          @logger.info "Class listing loaded successfully."
         else
-          @logger.warn "Calendar not detected immediately for #{name}. Waiting an extra 2 seconds..."
-          sleep 2
+          @logger.warn "Class listing not detected for #{name}. Waiting an extra 3 seconds..."
+          sleep 3
         end
       rescue
-        sleep 1
+        sleep 2
       end
       
-      # Scrape calendar
+      # Scrape the class listing view
       available_slots = []
+      cutoff = Date.today + DAYS_TO_SCAN
+      pages_scraped = 0
+      max_pages = 20 # Safety limit to prevent infinite loops
       
-      # Check current month
-      @logger.info "Scanning current month view..."
-      available_slots.concat(scrape_month)
-      
-      # Check next month
-      next_btn = @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__next-button')]")
-      if next_btn
-        @logger.info "Clicking 'Next Month'..."
-        next_btn.click
-        sleep 0.5
-        @logger.info "Scanning next month view..."
-        available_slots.concat(scrape_month)
-      else
-        @logger.info "No 'Next Month' button found."
+      loop do
+        pages_scraped += 1
+        
+        # Extract all visible slots using JavaScript
+        slot_data = @browser.evaluate(<<~JS)
+          (function() {
+            var results = [];
+            var currentDate = '';
+            // The class listing uses H2 for date headers and contains time slot containers
+            // Walk through the main content area
+            var container = document.querySelector('main') || document.body;
+            var elements = container.querySelectorAll('h2, h3, h4');
+            
+            for (var i = 0; i < elements.length; i++) {
+              var el = elements[i];
+              var text = el.innerText.trim();
+              
+              // H2 elements are date headers like "Monday, April 6th, 2026"
+              if (el.tagName === 'H2') {
+                // Check if this looks like a date (contains day of week)
+                if (/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(text)) {
+                  currentDate = text.replace(/\s*(TODAY|TOMORROW)\s*$/, '').trim();
+                }
+              }
+              // H3 elements are time slots like "10:40 AM"
+              else if (el.tagName === 'H3' && currentDate && /\d+:\d+\s*[AP]M/i.test(text)) {
+                var time = text.trim();
+                // Look for spots info - traverse up to the slot container and find spots text
+                var slotContainer = el.closest('[class*="css-"]') || el.parentElement;
+                var spotsText = '';
+                if (slotContainer) {
+                  var allText = slotContainer.innerText;
+                  var spotsMatch = allText.match(/(\d+)\s+spots?\s+left/i);
+                  if (spotsMatch) {
+                    spotsText = spotsMatch[1];
+                  }
+                }
+                results.push({
+                  date: currentDate,
+                  time: time,
+                  spots: spotsText ? parseInt(spotsText) : null
+                });
+              }
+            }
+            return results;
+          })()
+        JS
+        
+        if slot_data && slot_data.is_a?(Array) && slot_data.any?
+          @logger.info "Found #{slot_data.count} slot(s) on page #{pages_scraped}."
+          slot_data.each do |slot|
+            available_slots << {
+              date: slot['date'],
+              time: slot['time'],
+              spots: slot['spots']
+            }
+          end
+          
+          # Check if the last date is past our cutoff
+          last_date_str = slot_data.last['date']
+          begin
+            # Parse dates like "Monday, April 6th, 2026" - remove ordinal suffixes
+            clean_date = last_date_str.gsub(/(\d+)(st|nd|rd|th)/, '\1')
+            last_date = Date.parse(clean_date)
+            if last_date > cutoff
+              @logger.info "Reached past cutoff date (#{cutoff}). Stopping pagination."
+              break
+            end
+          rescue => e
+            @logger.warn "Could not parse date '#{last_date_str}': #{e.message}"
+          end
+        else
+          @logger.info "No slots found on page #{pages_scraped}."
+          break
+        end
+        
+        # Click "MORE TIMES" to load more dates
+        break if pages_scraped >= max_pages
+        
+        more_btn = @browser.at_xpath("//button[contains(translate(., 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'MORE TIMES')]")
+        if more_btn
+          @logger.info "Clicking 'MORE TIMES' to load more dates..."
+          more_btn.click
+          sleep 1.5
+        else
+          @logger.info "No 'MORE TIMES' button found. Done paginating."
+          break
+        end
       end
       
       # Filter for next N days
-      cutoff = Date.today + DAYS_TO_SCAN
       filtered_slots = available_slots.select do |slot|
         begin
-          Date.parse(slot[:date]) <= cutoff
+          clean_date = slot[:date].gsub(/(\d+)(st|nd|rd|th)/, '\1')
+          Date.parse(clean_date) <= cutoff
         rescue
           false
         end
