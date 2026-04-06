@@ -83,7 +83,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 3. Sort Dates
-        const sortedDates = Object.keys(appointmentsByDate).sort((a, b) => new Date(a) - new Date(b));
+        const sortedDates = Object.keys(appointmentsByDate).sort((a, b) => {
+            const cleanA = a.replace(/(\d+)(st|nd|rd|th)/, '$1');
+            const cleanB = b.replace(/(\d+)(st|nd|rd|th)/, '$1');
+            return new Date(cleanA) - new Date(cleanB);
+        });
 
         // 4. Render
         sortedDates.forEach(dateStr => {
@@ -100,8 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
             section.className = 'date-section';
 
             // Format nice date header: "Monday, December 4th"
-            const dateObj = new Date(dateStr);
-            const niceDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            const cleanDateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/, '$1');
+            const dateObj = new Date(cleanDateStr);
+            let niceDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+            
+            // Fallback if date parsing fails
+            if (isNaN(dateObj.getTime())) {
+                niceDate = dateStr;
+            }
 
             section.innerHTML = `<h2 class="date-header">${niceDate}</h2>`;
 
