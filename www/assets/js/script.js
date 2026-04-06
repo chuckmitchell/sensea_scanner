@@ -115,11 +115,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Extract type from name if present "Name (Type)"
                 let displayName = appt.staffName;
                 let typeBadge = '';
-                const typeMatch = appt.staffName.match(/(.*)\s\((.*)\)$/);
+                const typeMatch = appt.staffName.match(/(.+)\s\((.+)\)$/);
                 if (typeMatch) {
                     displayName = typeMatch[1];
                     typeBadge = `<span class="type-badge">${typeMatch[2]}</span>`;
-                } else if (appt.staffName === 'Spa Pass') {
+                }
+                
+                // Detect Spa Pass types (e.g. "Spa Pass Morning (Prepaid)", "Spa Pass Weekend")
+                const isSpaPass = appt.staffName.startsWith('Spa Pass');
+                if (isSpaPass && !typeBadge) {
                     typeBadge = `<span class="type-badge spa-pass">Spa Pass</span>`;
                 }
 
@@ -132,10 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let imageUrl = appt.staffImage;
 
-                if (appt.staffName === 'Spa Pass') {
-                    imageUrl = 'assets/img/spa_pass.png';
+                if (isSpaPass) {
+                    imageUrl = imageUrl || 'assets/img/spa_pass.png';
                 } else if (appt.staffName.includes('(Couples)')) {
-                    imageUrl = 'assets/img/couples_massage.png';
+                    imageUrl = imageUrl || 'assets/img/couples_massage.png';
                 } else if (imageUrl && imageUrl.startsWith('//')) {
                     imageUrl = 'https:' + imageUrl;
                 } else if (!imageUrl) {

@@ -96,113 +96,138 @@ class SenseaScanner
   end
 
   def scan_spa_pass
-    url = "https://sensea.as.me/?appointmentType=15360506"
-    # Use the category URL as requested
-    url = "https://sensea.as.me/schedule/1e0cc157/category/Spa%2520pass"
-    @logger.info "Navigating to Spa Pass category page: #{url}"
-    @browser.go_to(url)
+    # Dynamically discover all Spa Pass appointment types from window.BUSINESS
+    # This makes the scanner resilient to types being added, removed, or renamed
+    category_url = "https://sensea.as.me/schedule/1e0cc157/category/Spa%2520Pass%2520"
+    @logger.info "Navigating to Spa Pass category page to discover types: #{category_url}"
+    @browser.go_to(category_url)
     
-    # Wait for page to load - Optimized
-    # Instead of sleep 2, wait for the button we need
+    # Wait for page to load and BUSINESS data to be available
+    sleep 3
     
-    # Find and click the "Select" button specifically for Spa Pass
-    # The structure is usually a container with the name and the button
-    begin
-      # XPath to find the button relative to the "Spa pass" text
-      # We look for a container (li) that has a div with exact text "Spa Pass" and a "Select" button
-      # Using normalize-space to handle potential whitespace
-      xpath = "//li[contains(@class, 'select-item') and .//div[contains(@class, 'appointment-type-name') and normalize-space(text())='Spa Pass']]//button[contains(., 'Select')]"
-      
-      # Wait for the button to appear (manual polling since at_xpath doesn't support timeout)
-      btn = nil
-      50.times do
-        btn = @browser.at_xpath(xpath)
-        break if btn
-        sleep 0.1
-      end
-
-      
-      if btn
-        @logger.info "Found 'Select' button for Spa Pass. Clicking..."
-        btn.click # Try native click first
-      else
-        @logger.error "Could not find 'Select' button specifically for Spa Pass."
-        # Fallback to dumping HTML to see why
-        File.write("debug_spa_pass_select_fail.html", @browser.body)
-        return
-      end
-    rescue => e
-      @logger.error "Error clicking 'Select' button: #{e.message}"
+    # Extract Spa Pass appointment types from window.BUSINESS
+    business_data = @browser.evaluate("window.BUSINESS")
+    unless business_data
+      @logger.error "Could not find window.BUSINESS object. Aborting Spa Pass scan."
       return
     end
     
-    # Wait for calendar to appear
-    begin
-      # Removed wait_for_idle as it causes unnecessary delays
-      # @browser.network.wait_for_idle
-      # Wait up to 5 seconds for calendar header, check every 0.1s
-      found = false
-      50.times do
-        if @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
-          found = true
-          break
+    # Find the Spa Pass category - look for any category containing "Spa Pass" (case-insensitive)
+    spa_pass_types = []
+    business_data['appointmentTypes'].each do |category, types|
+      if category.strip.downcase.include?('spa pass')
+        @logger.info "Found Spa Pass category: '#{category}' with #{types.count} appointment type(s)."
+        types.each do |apt|
+          spa_pass_types << apt
+          @logger.info "  Discovered: #{apt['name']} (ID: #{apt['id']}, Price: $#{apt['price']})"
         end
-        sleep 0.1
+      end
+    end
+    
+    if spa_pass_types.empty?
+      @logger.error "No Spa Pass appointment types found in business data."
+      @logger.info "Available categories: #{business_data['appointmentTypes'].keys.join(', ')}"
+      return
+    end
+    
+    # Get all calendars
+    all_calendars = []
+    business_data['calendars'].each do |location, calendars|
+      all_calendars.concat(calendars)
+    end
+    
+    # Scan each Spa Pass type individually
+    spa_pass_types.each do |apt|
+      name = apt['name']
+      apt_id = apt['id']
+      calendar_ids = apt['calendarIDs'] || []
+      
+      # Build the direct booking URL (use first calendar if available, otherwise just the type)
+      if calendar_ids.any?
+        booking_url = "https://sensea.as.me/?appointmentType=#{apt_id}&calendarID=#{calendar_ids.first}"
+      else
+        booking_url = "https://sensea.as.me/?appointmentType=#{apt_id}"
       end
       
-      if found
-         @logger.info "Calendar loaded successfully."
-      else
-         @logger.warn "Calendar not detected immediately. Waiting an extra 2 seconds..."
-         sleep 2
-         @browser.screenshot(path: "debug_calendar_fail.png")
-         File.write("debug_calendar_fail.html", @browser.body)
-         @logger.info "Saved debug screenshot to debug_calendar_fail.png and HTML to debug_calendar_fail.html"
+      # Try to get image/description from the calendar data
+      image_url = nil
+      description = apt['description'] || ''
+      if calendar_ids.any?
+        cal_data = all_calendars.find { |c| c['id'] == calendar_ids.first }
+        if cal_data
+          image_url = cal_data['thumbnail']
+          image_url = "https:#{image_url}" if image_url && image_url.start_with?("//")
+        end
       end
-    rescue
-      sleep 1
-    end
 
-    # Check calendar
-    available_slots = []
-    
-    # Check current month
-    @logger.info "Scanning current month view..."
-    available_slots.concat(scrape_month)
-    
-    # Check next month
-    next_btn = @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__next-button')]")
-    if next_btn
-      @logger.info "Clicking 'Next Month'..."
-      next_btn.click
-      sleep 0.5 
-      @logger.info "Scanning next month view..."
-      available_slots.concat(scrape_month)
-    else
-      @logger.info "No 'Next Month' button found."
-    end
-    
-    # Filter for next N days
-    cutoff = Date.today + DAYS_TO_SCAN
-    filtered_slots = available_slots.select do |slot|
+      @logger.info "--- Scanning #{name} ---"
+      @logger.info "Navigating to booking URL: #{booking_url}"
+      @browser.go_to(booking_url)
+      
+      # Wait for calendar to appear
       begin
-        Date.parse(slot[:date]) <= cutoff 
+        found = false
+        50.times do
+          if @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__label')]")
+            found = true
+            break
+          end
+          sleep 0.1
+        end
+        
+        if found
+          @logger.info "Calendar loaded successfully."
+        else
+          @logger.warn "Calendar not detected immediately for #{name}. Waiting an extra 2 seconds..."
+          sleep 2
+        end
       rescue
-        false
+        sleep 1
       end
-    end
-    
-    @results["Spa Pass"] = {
-      image_url: nil, 
-      description: "Access to the Nordic Spa facilities.",
-      booking_url: url,
-      slots: filtered_slots.map { |s| [s[:date], s[:time], s[:spots]] }
-    }
-    
-    if filtered_slots.any?
-      @logger.info "SUCCESS: Found #{filtered_slots.count} slots for Spa Pass."
-    else
-      @logger.info "No availability found for Spa Pass."
+      
+      # Scrape calendar
+      available_slots = []
+      
+      # Check current month
+      @logger.info "Scanning current month view..."
+      available_slots.concat(scrape_month)
+      
+      # Check next month
+      next_btn = @browser.at_xpath("//button[contains(@class, 'react-calendar__navigation__next-button')]")
+      if next_btn
+        @logger.info "Clicking 'Next Month'..."
+        next_btn.click
+        sleep 0.5
+        @logger.info "Scanning next month view..."
+        available_slots.concat(scrape_month)
+      else
+        @logger.info "No 'Next Month' button found."
+      end
+      
+      # Filter for next N days
+      cutoff = Date.today + DAYS_TO_SCAN
+      filtered_slots = available_slots.select do |slot|
+        begin
+          Date.parse(slot[:date]) <= cutoff
+        rescue
+          false
+        end
+      end
+      
+      # Store result keyed by the spa pass type name
+      @results[name] = {
+        image_url: image_url,
+        description: description,
+        booking_url: booking_url,
+        price: apt['price'],
+        slots: filtered_slots.map { |s| [s[:date], s[:time], s[:spots]] }
+      }
+      
+      if filtered_slots.any?
+        @logger.info "SUCCESS: Found #{filtered_slots.count} slots for #{name}."
+      else
+        @logger.info "No availability found for #{name}."
+      end
     end
   end
 
@@ -447,7 +472,13 @@ class SenseaScanner
       day_btn = day_btns[i]
       next unless day_btn
       
+      # aria-label may be on the button itself or on a child <abbr> element
       date_str = day_btn.attribute('aria-label')
+      if date_str.nil? || date_str.empty?
+        # Check for aria-label on child <abbr> element (new Acuity layout)
+        abbr = day_btn.at_css('abbr')
+        date_str = abbr.attribute('aria-label') if abbr
+      end
       if date_str.nil? || date_str.empty?
         # Fallback: construct date from text (day number) and context
         day_num = day_btn.text.to_i
