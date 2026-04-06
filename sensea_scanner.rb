@@ -220,7 +220,7 @@ class SenseaScanner
               if (el.tagName === 'H2') {
                 // Check if this looks like a date (contains day of week)
                 if (/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)/i.test(text)) {
-                  currentDate = text.replace(/\s*(TODAY|TOMORROW)\s*$/, '').trim();
+                  currentDate = text.replace(/\s*(TODAY|TOMORROW)\s*$/, '').replace(/^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)[,\s]+/i, '').trim();
                 }
               }
               // H3 elements are time slots like "10:40 AM"
