@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     displayName = typeMatch[1];
                     typeBadge = `<span class="type-badge">${typeMatch[2]}</span>`;
                 }
-                
+
                 // Detect Spa Pass types (e.g. "Spa Pass Morning (Prepaid)", "Spa Pass Weekend")
                 const isSpaPass = appt.staffName.startsWith('Spa Pass');
                 if (isSpaPass && !typeBadge) {
