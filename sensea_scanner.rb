@@ -229,16 +229,25 @@ class SenseaScanner
                 // Look for spots info - walk up ancestors until we find one containing "spots left"
                 // (the spots count is in a sibling branch, not a direct ancestor of the H3)
                 var spotsText = '';
+                var isSoldOut = false;
                 var ancestor = el.parentElement;
-                for (var j = 0; j < 10 && ancestor; j++) {
+                for (var j = 0; j < 8 && ancestor; j++) {
                   var ancestorText = ancestor.innerText || '';
                   var spotsMatch = ancestorText.match(/(\d+)\s+spots?\s+left/i);
                   if (spotsMatch) {
                     spotsText = spotsMatch[1];
                     break;
                   }
+                  // Detect "No spots left" / "no spots" / "sold out" / "waitlist" in a tight container
+                  // Use a length cap so we don't match text from unrelated sibling slots higher up the tree
+                  if (ancestorText.length < 300 && /no\s+spots?\s+left|sold\s+out|waitlist/i.test(ancestorText)) {
+                    isSoldOut = true;
+                    break;
+                  }
                   ancestor = ancestor.parentElement;
                 }
+                // Skip slots with no availability
+                if (isSoldOut) continue;
                 results.push({
                   date: currentDate,
                   time: time,

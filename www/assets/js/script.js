@@ -53,6 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (staff.slots && staff.slots.length > 0) {
                 staff.slots.forEach(slot => {
                     // slot is [date, time, spots]
+                    // Skip slots explicitly marked as 0 spots
+                    if (slot[2] === 0) return;
                     appointments.push({
                         date: slot[0], // "December 04, 2025"
                         time: slot[1], // "10:30 AM"
